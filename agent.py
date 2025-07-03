@@ -1,5 +1,8 @@
 from strands import Agent, tool
 from strands_tools import http_request
+from datetime import datetime, timedelta
+import re
+from typing import Dict, Optional
 import os
 
 os.environ['AWS_REGION'] = 'us-east-1'
@@ -64,6 +67,133 @@ def find_restaurant_assistant(query: str) -> str:
     else:
         # Return both if no specific weather mentioned
         return f"Found 2 restaurants:\n1. {indoor_restaurant['name']} (Indoor)\n2. {outdoor_restaurant['name']} (Outdoor)"
+@tool
+def parse_datetime_expression_assistant(expression: str, timezone: str = "UTC") -> str:
+    """
+    Parse natural language datetime expressions into ISO timestamps.
+    
+    Args:
+        expression: Natural language time expression (e.g., "tomorrow evening", "next Monday at 7pm")
+        timezone: Timezone for the timestamp (default: UTC)
+    
+    Returns:
+        ISO formatted timestamp string or error message
+    """
+    try:
+        now = datetime.now()
+        expression = expression.lower().strip()
+        
+        # Default time components
+        target_date = now.date()
+        target_time = None
+        
+        # Parse relative days
+        if "today" in expression:
+            target_date = now.date()
+        elif "tomorrow" in expression:
+            target_date = now.date() + timedelta(days=1)
+        elif "yesterday" in expression:
+            target_date = now.date() - timedelta(days=1)
+        elif "next week" in expression:
+            target_date = now.date() + timedelta(days=7)
+        elif "next monday" in expression:
+            days_ahead = 0 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        elif "next tuesday" in expression:
+            days_ahead = 1 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        elif "next wednesday" in expression:
+            days_ahead = 2 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        elif "next thursday" in expression:
+            days_ahead = 3 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        elif "next friday" in expression:
+            days_ahead = 4 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        elif "next saturday" in expression:
+            days_ahead = 5 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        elif "next sunday" in expression:
+            days_ahead = 6 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            target_date = now.date() + timedelta(days=days_ahead)
+        
+        # Parse time of day
+        if "morning" in expression:
+            target_time = (9, 0)  # 9 AM
+        elif "afternoon" in expression:
+            target_time = (14, 0)  # 2 PM
+        elif "evening" in expression:
+            target_time = (19, 0)  # 7 PM
+        elif "night" in expression:
+            target_time = (21, 0)  # 9 PM
+        elif "noon" in expression:
+            target_time = (12, 0)  # 12 PM
+        elif "midnight" in expression:
+            target_time = (0, 0)   # 12 AM
+        
+        # Parse specific times (e.g., "7pm", "2:30pm", "14:00")
+        time_patterns = [
+            r'(\d{1,2}):(\d{2})\s*(am|pm)',  # 7:30pm
+            r'(\d{1,2})\s*(am|pm)',          # 7pm
+            r'(\d{1,2}):(\d{2})',            # 14:30
+        ]
+        
+        for pattern in time_patterns:
+            match = re.search(pattern, expression)
+            if match:
+                if len(match.groups()) == 3:  # With AM/PM
+                    hour = int(match.group(1))
+                    minute = int(match.group(2))
+                    ampm = match.group(3)
+                    if ampm == 'pm' and hour != 12:
+                        hour += 12
+                    elif ampm == 'am' and hour == 12:
+                        hour = 0
+                    target_time = (hour, minute)
+                elif len(match.groups()) == 2 and match.group(2):  # Just AM/PM
+                    hour = int(match.group(1))
+                    ampm = match.group(2)
+                    if ampm == 'pm' and hour != 12:
+                        hour += 12
+                    elif ampm == 'am' and hour == 12:
+                        hour = 0
+                    target_time = (hour, 0)
+                else:  # 24-hour format
+                    hour = int(match.group(1))
+                    minute = int(match.group(2))
+                    target_time = (hour, minute)
+                break
+        
+        # Combine date and time
+        if target_time:
+            hour, minute = target_time
+            target_datetime = datetime.combine(target_date, datetime.min.time().replace(hour=hour, minute=minute))
+        else:
+            # Default to current time if no time specified
+            target_datetime = datetime.combine(target_date, now.time())
+        
+        # Format as ISO timestamp
+        iso_timestamp = target_datetime.isoformat()
+        
+        return f"Parsed '{expression}' to: {iso_timestamp} ({timezone})"
+        
+    except Exception as e:
+        return f"Error parsing datetime expression '{expression}': {str(e)}"
 
 @tool
 def reserve_table_assistant(restaurant_name: str, date: str, time: str, party_size: int) -> str:
@@ -120,6 +250,8 @@ CONCIERGE_SYSTEM_PROMPT = """You are a helpful concierge assistant that speciali
    - Analyze the weather conditions (temperature, precipitation, wind, sky conditions)
    - Then use find_restaurant_assistant tool with weather-appropriate keywords
    - Provide clear reasoning for your restaurant choice
+   - Once you have the restaurant's name automatically create a reservation, use reserve_table_assistant tool with the restaurant name, date, time, and party size
+   - If the user describes a specific time, use parse_datetime_expression tool to convert natural language datetime expressions into ISO timestamps
    - You don't need to thank or use polite forms to the subagents when using them or receiving their response, just use them directly
 
 4. **Response Format**:
@@ -140,9 +272,9 @@ Always prioritize user comfort and safety when making recommendations. If weathe
 concierge_agent = Agent(
     system_prompt=CONCIERGE_SYSTEM_PROMPT,
     callback_handler=event_loop_tracker,
-    tools=[weather_assistant, find_restaurant_assistant, reserve_table_assistant],
+    tools=[weather_assistant, find_restaurant_assistant, reserve_table_assistant, parse_datetime_expression_assistant],
     model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
 )
 
 # Ask the agent a question
-concierge_agent("Me and my friend want to have dinner tomorrow evening, outside if possible. Find a restaurant with outdoor seating in the area of Latitude 48.8575 and Longitude 2.3514, otherwise find an indoor restaurant.")
+concierge_agent("Me and my 2 friends want to have dinner tomorrow evening, outside if possible. Find a restaurant with outdoor seating in the area of Latitude 48.8575 and Longitude 2.3514, otherwise find an indoor restaurant.")
