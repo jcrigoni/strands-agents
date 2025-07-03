@@ -46,7 +46,7 @@ def weather_assistant(location: str) -> str:
     3. Provide weather information for locations in the United States
 
     When retrieving weather information:
-    1. First get the coordinates or grid information using https://api.weather.gov/points/{latitude},{longitude} or https://api.weather.gov/points/{zipcode}
+    1. First get the coordinates or grid information using 'https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid=9393ff701ada56eb0e753b9d76684cb2&units=metric'
     2. Then use the returned forecast URL to get the actual forecast
 
     When displaying responses:
@@ -135,4 +135,4 @@ concierge_agent = Agent(
 )
 
 # Ask the agent a question
-concierge_agent("Me and my friend want to have lunch tomorrow outside if possible. Find a restaurant with outdoor seating in the area of Latitude 64.499538 and longitude -165.406344 if the weather forecast for today is warm, otherwise find an indoor restaurant.")
+concierge_agent("Me and my friend want to have lunch tomorrow outside if possible. Find a restaurant with outdoor seating in the area of Latitude 48.8575 and Longitude 2.3514 if the weather forecast for today is warm, otherwise find an indoor restaurant.")
