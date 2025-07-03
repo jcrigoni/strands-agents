@@ -4,6 +4,40 @@ import os
 
 os.environ['AWS_REGION'] = 'us-east-1'
 
+# TOOLS COLLECTION
+@tool
+def weather_assistant(location: str) -> str:
+    """
+    Get the weather forecast for a given location.
+    """
+    print(f"Fetching weather for location: {location} with tool")
+    # Define a weather-focused system prompt
+    WEATHER_SYSTEM_PROMPT = """You are a weather assistant with HTTP capabilities. You can:
+
+    1. Make HTTP requests to the National Weather Service API
+    2. Process and display weather forecast data
+    3. Provide weather information for locations in the United States
+
+    When retrieving weather information:
+    1. First get the coordinates or grid information using 'https://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid=9393ff701ada56eb0e753b9d76684cb2&units=metric'
+    2. Then use the returned forecast URL to get the actual forecast
+
+    When displaying responses:
+    - Format weather data in a human-readable way
+    - Highlight important information like temperature, precipitation, and alerts
+    - Handle errors appropriately
+    - Convert technical terms to user-friendly language
+
+    Always explain the weather conditions clearly and provide context for the forecast.
+    """
+
+    # Create an agent with HTTP capabilities
+    weather_agent = Agent(
+        system_prompt=WEATHER_SYSTEM_PROMPT,
+        tools=[http_request],  
+    )
+    return weather_agent(f"Get the weather forecast for {location}.")
+
 @tool
 def find_restaurant_assistant(query: str) -> str:
     """
@@ -31,41 +65,16 @@ def find_restaurant_assistant(query: str) -> str:
         # Return both if no specific weather mentioned
         return f"Found 2 restaurants:\n1. {indoor_restaurant['name']} (Indoor)\n2. {outdoor_restaurant['name']} (Outdoor)"
 
-
 @tool
-def weather_assistant(location: str) -> str:
+def reserve_table_assistant(restaurant_name: str, date: str, time: str, party_size: int) -> str:
     """
-    Get the weather forecast for a given location.
+    Assist with reserving a table at a restaurant.
     """
-    print(f"Fetching weather for location: {location} with tool")
-    # Define a weather-focused system prompt
-    WEATHER_SYSTEM_PROMPT = """You are a weather assistant with HTTP capabilities. You can:
+    # Mock reservation confirmation
+    return f"Reservation confirmed at {restaurant_name} for {party_size} people on {date} at {time}."
 
-    1. Make HTTP requests to the National Weather Service API
-    2. Process and display weather forecast data
-    3. Provide weather information for locations in the United States
 
-    When retrieving weather information:
-    1. First get the coordinates or grid information using 'https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid=9393ff701ada56eb0e753b9d76684cb2&units=metric'
-    2. Then use the returned forecast URL to get the actual forecast
-
-    When displaying responses:
-    - Format weather data in a human-readable way
-    - Highlight important information like temperature, precipitation, and alerts
-    - Handle errors appropriately
-    - Convert technical terms to user-friendly language
-
-    Always explain the weather conditions clearly and provide context for the forecast.
-    """
-
-    # Create an agent with HTTP capabilities
-    weather_agent = Agent(
-        system_prompt=WEATHER_SYSTEM_PROMPT,
-        tools=[http_request],  
-    )
-    return weather_agent(f"Get the weather forecast for {location}.")
-
-# Define a callback handler for debugging purposes to use if needed with this argument in the agent callback_handler=debugger_callback_handler
+# Optional Define a callback handler for debugging purposes to use if needed with this argument in the agent callback_handler=debugger_callback_handler
 def debugger_callback_handler(**kwargs):
     # Print the values in kwargs so that we can see everything
     print(kwargs)
@@ -111,6 +120,7 @@ CONCIERGE_SYSTEM_PROMPT = """You are a helpful concierge assistant that speciali
    - Analyze the weather conditions (temperature, precipitation, wind, sky conditions)
    - Then use find_restaurant_assistant tool with weather-appropriate keywords
    - Provide clear reasoning for your restaurant choice
+   - You don't need to thank or use polite forms to the subagents when using them or receiving their response, just use them directly
 
 4. **Response Format**:
    - Explain the current weather conditions briefly
@@ -130,9 +140,9 @@ Always prioritize user comfort and safety when making recommendations. If weathe
 concierge_agent = Agent(
     system_prompt=CONCIERGE_SYSTEM_PROMPT,
     callback_handler=event_loop_tracker,
-    tools=[weather_assistant, find_restaurant_assistant],
+    tools=[weather_assistant, find_restaurant_assistant, reserve_table_assistant],
     model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
 )
 
 # Ask the agent a question
-concierge_agent("Me and my friend want to have lunch tomorrow outside if possible. Find a restaurant with outdoor seating in the area of Latitude 48.8575 and Longitude 2.3514 if the weather forecast for today is warm, otherwise find an indoor restaurant.")
+concierge_agent("Me and my friend want to have dinner tomorrow evening, outside if possible. Find a restaurant with outdoor seating in the area of Latitude 48.8575 and Longitude 2.3514, otherwise find an indoor restaurant.")
