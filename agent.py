@@ -65,7 +65,36 @@ def weather_assistant(location: str) -> str:
     )
     return weather_agent(f"Get the weather forecast for {location}.")
 
+# Define a callback handler for debugging purposes to use if needed with this argument in the agent callback_handler=debugger_callback_handler
+def debugger_callback_handler(**kwargs):
+    # Print the values in kwargs so that we can see everything
+    print(kwargs)
 
+def event_loop_tracker(**kwargs):
+    # Track event loop lifecycle
+    if kwargs.get("init_event_loop", False):
+        print("🔄 Event loop initialized")
+    elif kwargs.get("start_event_loop", False):
+        print("▶️ Event loop cycle starting")
+    elif kwargs.get("start", False):
+        print("📝 New cycle started")
+    elif "message" in kwargs:
+        print(f"📬 New message created: {kwargs['message']['role']}")
+    elif kwargs.get("complete", False):
+        print("✅ Cycle completed")
+    elif kwargs.get("force_stop", False):
+        print(f"🛑 Event loop force-stopped: {kwargs.get('force_stop_reason', 'unknown reason')}")
+
+    # Track tool usage
+    if "current_tool_use" in kwargs and kwargs["current_tool_use"].get("name"):
+        tool_name = kwargs["current_tool_use"]["name"]
+        print(f"🔧 Using tool: {tool_name}")
+
+    # Show only a snippet of text to keep output clean
+    if "data" in kwargs:
+        # Only show first 20 chars of each chunk for demo purposes
+        data_snippet = kwargs["data"][:20] + ("..." if len(kwargs["data"]) > 20 else "")
+        print(f"📟 Text: {data_snippet}")
 
 
 # Define the concierge system prompt
@@ -100,11 +129,10 @@ Always prioritize user comfort and safety when making recommendations. If weathe
 # Create an agent with default settings
 concierge_agent = Agent(
     system_prompt=CONCIERGE_SYSTEM_PROMPT,
-    callback_handler=None,
+    callback_handler=event_loop_tracker,
     tools=[weather_assistant, find_restaurant_assistant],
     model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
 )
 
 # Ask the agent a question
-response = concierge_agent("Me and my friend want to have lunch outside if possible. Find a restaurant with outdoor seating in the area of Latitude 40 and longitude -73 if the weather forecast for today is warm, otherwise find me an indoor restaurant.")
-print(response)
+concierge_agent("Me and my friend want to have lunch tomorrow outside if possible. Find a restaurant with outdoor seating in the area of Latitude 64.499538 and longitude -165.406344 if the weather forecast for today is warm, otherwise find an indoor restaurant.")
