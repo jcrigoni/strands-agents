@@ -7,6 +7,9 @@ name = "pypi"
 strands-agents = "*"
 strands-agents-tools = "*"
 strands-agents-builder = "*"
+streamlit = "*"
+httpx = "*"
+pandas = "*"
 
 [dev-packages]
 
