@@ -9,23 +9,24 @@ strands-concierge-streamlit
 ├── src
 │   ├── agent.py         # Implementation of the concierge agent and its tools
 │   └── app.py           # Streamlit application for user interaction
-├── requirements.txt      # List of project dependencies
-└── README.md             # Project documentation
+├── Pipfile              # List of project dependencies
+├── Pipfile.lock         # List of project dependencies
+└── README.md            # Project documentation
 ```
 
 ## Setup Instructions
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
-   cd strands-concierge-streamlit
+   git clone <https://github.com/jcrigoni/strands-agents>
+   cd strands-agents
    ```
 
 2. **Install dependencies**:
-   It is recommended to use a virtual environment. You can create one using `venv` or `conda`.
+   It is recommended to use a virtual environment. You can create one using `venv` or `pipenv`.
 
    ```bash
-   pip install -r requirements.txt
+   pipenv install Pipfile.lock
    ```
 
 3. **Run the Streamlit application**:
