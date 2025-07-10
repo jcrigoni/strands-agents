@@ -4,12 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-strands-agents = "*"
 strands-agents-tools = "*"
 strands-agents-builder = "*"
 streamlit = "*"
 httpx = "*"
 pandas = "*"
+strands-agents = {extras = ["anthropic"], version = "*"}
 
 [dev-packages]
 
