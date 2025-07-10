@@ -1,20 +1,31 @@
 import streamlit as st
 from agent import concierge_agent
 
-def main():
-    st.title("Concierge Chatbot")
-    st.write("Ask me anything about restaurant recommendations based on weather conditions!")
+st.set_page_config(page_title="Concierge Chatbot", page_icon="🤖")
 
-    # Create a text input for user questions
-    user_input = st.text_input("Your question:")
+st.title("🤖 Concierge Chatbot")
+st.write("Make a restaurant reservation based on weather conditions!")
 
-    if st.button("Send"):
-        if user_input:
-            # Get the response from the concierge agent
-            response = concierge_agent(user_input)
-            st.write("Concierge Agent:", response)
-        else:
-            st.write("Please enter a question.")
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-if __name__ == "__main__":
-    main()
+# Display previous messages
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# New user input
+if prompt := st.chat_input("Ask something..."):
+    # Display user message
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # Show spinner while agent is processing
+    with st.spinner("Thinking..."):
+        response = concierge_agent(prompt)
+
+    # Display assistant message
+    with st.chat_message("assistant"):
+        st.markdown(response)
+    st.session_state.messages.append({"role": "assistant", "content": response})

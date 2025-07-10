@@ -6,6 +6,7 @@ import re
 import os
 
 os.environ['AWS_REGION'] = 'us-east-1'
+openweathermap_api_key = os.getenv('OPENWEATHERMAP_API_KEY')  
 
 # TOOLS COLLECTION
 @tool
@@ -14,24 +15,25 @@ def weather_assistant(location: str) -> str:
     Get the weather forecast for a given location.
     """
     print(f"Fetching weather for location: {location} with tool")
-    WEATHER_SYSTEM_PROMPT = """You are a weather assistant with HTTP capabilities. You can:
+    WEATHER_SYSTEM_PROMPT = f"""You are a weather assistant with HTTP capabilities. You can:
 
-    1. Make HTTP requests to openweathermap API
-    2. Process and display weather forecast data
-    3. Provide weather information for locations in the whole world
+1. Make HTTP requests to openweathermap API
+2. Process and display weather forecast data
+3. Provide weather information for locations in the whole world
 
-    When retrieving weather information:
-    1. First get the coordinates or grid information using 'https://api.openweathermap.org/data/2.5/forecast?lat={latitude}&lon={longitude}&appid=YOUR_API_KEY&units=metric'
-    2. Then use the returned forecast URL to get the actual forecast
+When retrieving weather information:
+1. First get the coordinates or grid information using 'https://api.openweathermap.org/data/2.5/forecast?lat={{latitude}}&lon={{longitude}}&appid={openweathermap_api_key}&units=metric'
+2. Then use the returned forecast URL to get the actual forecast
 
-    When displaying responses:
-    - Format weather data in a human-readable way
-    - Highlight important information like temperature, precipitation, and alerts
-    - Handle errors appropriately
-    - Convert technical terms to user-friendly language
+When displaying responses:
+- Format weather data in a human-readable way
+- Highlight important information like temperature, precipitation, and alerts
+- Handle errors appropriately
+- Convert technical terms to user-friendly language
 
-    Always explain the weather conditions clearly and provide context for the forecast.
-    """
+Always explain the weather conditions clearly and provide context for the forecast.
+"""
+
 
     weather_agent = Agent(
         system_prompt=WEATHER_SYSTEM_PROMPT,
@@ -249,6 +251,7 @@ CONCIERGE_SYSTEM_PROMPT = """You are a helpful concierge assistant that speciali
 Always prioritize user comfort and safety when making recommendations. If weather conditions are borderline, explain the trade-offs and let the user decide.
 """
 
+
 # Create an agent with default settings
 concierge_agent = Agent(
     system_prompt=CONCIERGE_SYSTEM_PROMPT,
@@ -256,6 +259,3 @@ concierge_agent = Agent(
     tools=[weather_assistant, find_restaurant_assistant, reserve_table_assistant, parse_datetime_expression_assistant],
     model="us.anthropic.claude-3-7-sonnet-20250219-v1:0",
 )
-
-# Streamlit application will replace this question
-# concierge_agent("Me and my 2 friends want to have dinner tomorrow evening, outside if possible. Find a restaurant with outdoor seating in the area of Latitude 48.8575 and Longitude 2.3514, otherwise find an indoor restaurant.")
